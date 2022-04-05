@@ -1,4 +1,4 @@
-# OCFNet: Overlap-guided Coarse-to-fine Correspondence prediction for Point Cloud Registration
+# OCFNet: Overlap-guided Coarse-to-fine Correspondence Prediction for Point Cloud Registration
 *Guofeng Mei<sup>\*</sup>, Xiaoshui Huang, Jian Zhang, Qiang Wu*
 
 
