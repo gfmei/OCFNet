@@ -1,0 +1,15 @@
+# The sparse backbone runs on spconv 2.x instead of MinkowskiEngine. Install the wheel that
+# matches the CUDA version of your torch build, e.g.
+#   spconv-cu126  (torch cu12.6)   spconv-cu120   spconv-cu118
+spconv-cu126>=2.3
+torch>=2.0
+numpy
+scipy
+open3d>=0.16
+easydict
+PyYAML
+scikit-learn
+tqdm
+tensorboard
+matplotlib
+h5py          # datasets/modelnet.py only

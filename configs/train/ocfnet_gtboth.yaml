@@ -1,0 +1,128 @@
+misc:
+  exp_dir: ocfnet_gtboth
+  mode: train
+  gpu_mode: True
+  verbose: True
+  verbose_freq: 500
+  snapshot_freq: 1
+  pretrain: ''
+
+
+model:
+  model: OCFNet
+  in_feats_dim: 1
+  out_feats_dim: 32
+  conv1_kernel_size: 5
+  normalize_feature: True
+  dist_type: L2
+
+overlap_attention_module:
+  attention_feats_dim: 256
+  num_head: 4
+  nets: ['self','cross','self']
+  # 'self' layers are masked multi-head self-attention (torch's fused attention) with a 3D
+  # rotary position embedding on the voxel coordinates; 'cross' layers get no position
+  # embedding, the two clouds are not registered yet
+  geometric_pos_enc: False  # CoFiNet ape: False -- no positional encoding at the coarse level
+  rope: False          # OCFNet uses the paper's geometric positional encoding instead
+  rope_theta: 100.0
+  pos_enc_k: 5         # neighbours of the geometry-aware positional encoding (Eq. 1)
+
+coarse_to_fine:
+  sinkhorn_iters: 100      # CoFiNet uses 100; at 20 the plan is still 1e-1 from its marginals
+  similarity: inner        # CoFiNet Eq.(1): einsum(F_X, F_Y)/sqrt(d), unnormalised
+  sinkhorn_epsilon: 0.05
+  coarse_threshold: 0.05   # tau_t of Eq. (3)
+  # A patch is the Voronoi cell of its super-point -- disjoint, so a point belongs to
+  # exactly one patch -- capped at `patch_size` members.
+  use_overlap_head: True
+  gt_overlap: True   # teacher forcing: the true visibility drives the marginals and patch choice
+  coarse_marginals: overlap  # the score guides the coarse OT
+  fine_marginals: overlap    # and the point-level OT (o_ik, pair-conditional)
+  patch_size: 64
+  max_coarse_matches: 256  # patches refined per training step
+  # the overlap head: the paper normalises before the sigmoid, which fixes its mean
+  # at 0.5 while the targets average `overlap_prior` (scripts/diagnose_ocfnet.py)
+  overlap_head_norm: True
+  overlap_prior: 0.08
+  # let the two patches of a match talk to each other before matching, so the
+  # transport marginal means "matchable against this patch" rather than
+  # "matchable somewhere" -- 74% of a patch's points have their partner elsewhere
+  patch_attention: True
+  readout_mutual: True        # keep only mutually-agreed matches
+  readout_deduplicate: True   # and one per source point: 0.356 -> 0.526 inlier ratio
+  min_coarse_matches: 128  # at inference, fall back to the top-k pairs if the
+                           # threshold selects fewer than this
+  eval_pairs: 300          # benchmark pairs registered after every epoch
+  matching_radius: 0.1     # CoFiNet's pos_margin; the radius the inlier ratio uses
+
+loss:
+  # CoFiNet's objective is exactly matching_loss + local_matching_loss. The
+  # other terms are ours; they are kept switchable but off for the
+  # reproduction, so any gap to their published numbers is attributable.
+  # L = L_C + L_F + L_CO + L_FO  (section 2.4)
+  w_coarse_loss: 1.0
+  w_fine_loss: 1.0
+  w_inlier_loss: 1.0    # expected inlier ratio, maximised directly
+  w_coarse_inlier_loss: 1.0   # the same, for the coarse transport
+  w_coarse_overlap_loss: 1.0
+  w_fine_overlap_loss: 1.0   # supervises o_ik
+  # ranking supervision the paper's losses lack: a circle loss on the descriptors
+  # the transport cost is built from, and a row-wise classification inside each
+  # patch, which trains the argmax that Eq. (6) reads out
+  w_descriptor_loss: 0.0
+  w_patch_infonce_loss: 1.0
+  w_coarse_infonce_loss: 1.0
+  pos_margin: 0.1
+  neg_margin: 1.4
+  log_scale: 24
+  pos_radius: 0.0375
+  safe_radius: 0.1
+  overlap_radius: 0.0375
+  matchability_radius: 0.05 
+  w_circle_loss: 1.0
+  w_overlap_loss: 1.0
+  w_saliency_loss: 0.0
+  max_points: 256
+
+optimiser:
+  # OCFNet optimises cross-entropy over transport plans, not Predator's circle loss, so the
+  # SGD schedule of the Predator configs does not carry over. This follows CoFiNet, whose
+  # loss is of the same family: Adam at 1e-4.
+  optimizer: ADAM
+  max_epoch: 150   # CoFiNet trains for 150
+  lr: 0.0003
+  momentum: 0.8
+  weight_decay: 0.000001
+  bn_momentum: 0.05
+  scheduler: ExpLR
+  scheduler_gamma: 0.95
+  scheduler_freq: 1
+  iter_size: 1
+
+dataset:
+  dataset: indoor
+  benchmark: 3DMatch
+  root: data/indoor
+  voxel_size: 0.025
+  # The attention is masked per pair and the transport plans are solved per pair, so the
+  # pairs of a batch never mix (see scripts/test_batch_equivalence.py).
+  # Memory grows with the voxel count, about 20 GiB per million voxels on this model
+  # (scripts/bench_batch_size.py); 32 peaks around 18 GiB of the 63 GiB card, which leaves
+  # room for a batch that happens to draw only large scenes. Throughput is already flat
+  # here: 0.047 s/pair at 32 against 0.044 at 48.
+  # Aligned with CoFiNet (configs/tdmatch/tdmatch.yaml), whose published numbers this
+  # implementation is compared against: their effective batch is 4 (batch 1, iter_size 4),
+  # so an epoch is 5160 optimiser steps against 645 at batch 32 -- eight times more learning
+  # per epoch. Batch 8 recovers most of that while keeping the GPU busy.
+  batch_size: 12
+  num_workers: 6 
+  augment_noise: 0.005
+  train_info: configs/indoor/train_info.pkl
+  val_info: configs/indoor/val_info.pkl
+
+demo:
+  src_pcd: assets/cloud_bin_21.pth
+  tgt_pcd: assets/cloud_bin_34.pth
+  n_points: 1000
+
