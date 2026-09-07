@@ -172,24 +172,145 @@ change the method rather than just the throughput.
 
 ## Results
 
-Benchmark numbers are being re-measured and will be added once every run has converged.
-An earlier draft of this table was produced with `sinkhorn_iters: 20` at test time against
-models trained with 100, which under-applies the overlap score, so those numbers are not
-reported here.
+3DMatch and 3DLoMatch, correspondence-based RANSAC over the non-consecutive pairs the
+benchmark script scores (1279 and 1726 respectively). RR is
+registration recall weighted by pair count, IR the inlier ratio and FMR the feature match
+recall, both with the mutual-nearest-neighbour check; RRE is the mean median rotation error
+in degrees and RTE the mean median translation error in metres. RR, IR and FMR are
+percentages. This is the protocol and the `est_traj/{benchmark}/{samples}/result` format
+CoFiNet reports, so the numbers are directly comparable to theirs.
 
-To reproduce, evaluate a trained model on both benchmarks and collect the results:
+Two models, both trained for 150 epochs and evaluated at the last checkpoint:
+
+- **our OCFNet** -- overlap head trained with the coarse and fine overlap losses, uniform
+  transport marginals, RoPE-3D at the coarse level.
+- **our improved CoFiNet** -- the same network without the overlap head, RoPE-3D at the
+  coarse level. It isolates what the overlap head is worth as an auxiliary task, since that
+  is the only difference between the two.
+
+### 3DMatch
+
+<table>
+<thead>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+</thead>
+<tbody>
+  <tr><td align="center">5000</td><td align="right">90.1</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.37</td><td align="right">0.078</td><td align="right">89.7</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.25</td><td align="right">0.073</td></tr>
+  <tr><td align="center">2500</td><td align="right">89.8</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.29</td><td align="right">0.075</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.30</td><td align="right">0.070</td></tr>
+  <tr><td align="center">1000</td><td align="right">89.8</td><td align="right">60.9</td><td align="right">97.3</td><td align="right">2.17</td><td align="right">0.071</td><td align="right">89.3</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.29</td><td align="right">0.073</td></tr>
+  <tr><td align="center">500</td><td align="right">90.8</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.32</td><td align="right">0.076</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.38</td><td align="right">0.072</td></tr>
+  <tr><td align="center">250</td><td align="right">89.4</td><td align="right">60.6</td><td align="right">97.4</td><td align="right">2.30</td><td align="right">0.077</td><td align="right">89.0</td><td align="right">61.3</td><td align="right">96.2</td><td align="right">2.34</td><td align="right">0.075</td></tr>
+</tbody>
+</table>
+
+### 3DLoMatch
+
+<table>
+<thead>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+</thead>
+<tbody>
+  <tr><td align="center">5000</td><td align="right">55.1</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.60</td><td align="right">0.106</td><td align="right">53.3</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.46</td><td align="right">0.102</td></tr>
+  <tr><td align="center">2500</td><td align="right">55.5</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.50</td><td align="right">0.102</td><td align="right">53.2</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.62</td><td align="right">0.111</td></tr>
+  <tr><td align="center">1000</td><td align="right">55.4</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.70</td><td align="right">0.110</td><td align="right">54.0</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.59</td><td align="right">0.106</td></tr>
+  <tr><td align="center">500</td><td align="right">55.3</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.72</td><td align="right">0.109</td><td align="right">53.1</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.51</td><td align="right">0.107</td></tr>
+  <tr><td align="center">250</td><td align="right">54.4</td><td align="right">27.4</td><td align="right">77.0</td><td align="right">3.58</td><td align="right">0.107</td><td align="right">53.1</td><td align="right">27.5</td><td align="right">76.6</td><td align="right">3.52</td><td align="right">0.104</td></tr>
+</tbody>
+</table>
+
+### Against the published numbers
+
+<table>
+<thead>
+  <tr><th rowspan="2">method</th><th colspan="5">3DMatch</th><th colspan="5">3DLoMatch</th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+</thead>
+<tbody>
+  <tr><td><b>our OCFNet</b></td><td align="right"><b>89.8</b></td><td align="right"><b>60.9</b></td><td align="right"><b>97.3</b></td><td align="right"><b>2.18</b></td><td align="right"><b>0.071</b></td><td align="right"><b>55.4</b></td><td align="right"><b>27.5</b></td><td align="right"><b>77.2</b></td><td align="right"><b>3.70</b></td><td align="right"><b>0.110</b></td></tr>
+  <tr><td>our improved CoFiNet</td><td align="right">89.3</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.29</td><td align="right">0.073</td><td align="right">54.0</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.59</td><td align="right">0.106</td></tr>
+  <tr><td><i>CoFiNet (published)</i></td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td><i>OCFNet (published)</i></td><td align="right"><i>90.2</i></td><td align="right"><i>58.7</i></td><td align="right"><i>98.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>66.7</i></td><td align="right"><i>29.5</i></td><td align="right"><i>84.0</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td><i>Predator (published)</i></td><td align="right"><i>90.6</i></td><td align="right"><i>57.1</i></td><td align="right"><i>96.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>62.4</i></td><td align="right"><i>28.3</i></td><td align="right"><i>76.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+</tbody>
+</table>
+
+<sub>Published rows are the 1000-sample column of each paper's Table 1, so the measured rows
+are quoted at 1000 samples too. Both measured models exceed the published CoFiNet inlier
+ratio by about 9 points on 3DMatch and reach it on 3DLoMatch. 3DLoMatch registration recall
+is 9 to 11 points below CoFiNet's despite the higher inlier ratio; that gap is not
+understood -- see the note below.</sub>
+
+### Reading the sampling columns
+
+The columns are flat because the model does not produce enough correspondences for the
+sample count to bind: the readout emits about 730 per pair on 3DMatch and 420 on 3DLoMatch,
+so every column from 5000 down to 500 draws from essentially the same set and IR is
+identical to three decimals. The spread in RR (89.4 to 90.8 on 3DMatch) is RANSAC seed
+noise, not a sampling trend, and should not be read as one. A genuine sampling curve would
+need a larger correspondence pool, which means relaxing the `mutual` and `deduplicate`
+readout -- measured at 6228 correspondences per pair, that lowers 3DLoMatch RR from 55.7 to
+54.8, so the pool is small by choice.
+
+### The overlap score
+
+The overlap head earns its place as an auxiliary loss, not as a transport prior. Using the
+predicted score to drive the Sinkhorn marginals was measured in five configurations against
+a control that trains the same head and both overlap losses but keeps uniform marginals:
+
+| overlap marginals | dustbin | 3DMatch IR | 3DLoMatch IR |
+| --- | --- | --- | --- |
+| none (control) | on | 51.3 | 22.0 |
+| coarse and fine | on | 54.8 | 24.1 |
+| fine only | on at coarse | 53.5 | 23.2 |
+| coarse and fine | off | 53.0 | 21.5 |
+| coarse and fine, plus a cost-side bias | on | 55.2 | 24.0 |
+
+Guiding both transports is worth about +3.5 IR, and only while the dustbin is kept: the
+score says *which* points should match, the dustbin lets a point match *nothing*, and
+removing it forces every point onto some target and manufactures outliers. The damage is
+three times larger on 3DLoMatch, where more of each cloud genuinely has no counterpart.
+
+That gain does not survive RoPE-3D. With RoPE at the coarse level, every model without
+overlap marginals beats every model with them (60.9 against 58.5 IR on 3DMatch), so the two
+appear to supply the same geometric information and RoPE supplies more of it. The models
+above therefore keep the overlap head and its losses but leave the marginals uniform.
+
+### The 3DLoMatch recall gap
+
+Our 3DLoMatch RR is 55.4 against CoFiNet's published 64.2 while our inlier ratio is higher
+(27.5 against 26.7). Three explanations were tested and all three are refuted:
+
+- **Too few correspondences.** Raising `min_coarse_matches` from 128 to 1024 quadruples the
+  pool and RR falls monotonically, 53.2 to 47.3.
+- **Too aggressive a readout.** Turning off `mutual` and `deduplicate` gives 13 times more
+  inliers, 116 to 1557 per pair, and RR falls from 55.7 to 54.8.
+- **Too little RANSAC.** `RANSACConvergenceCriteria(50000, 0.999)` stops after
+  `log(1-c)/log(1-w^n)` draws, 27 iterations at IR 0.61, where CoFiNet's older open3d read
+  that argument as `max_validation` and ran 50000. Forcing the full search improves the pose
+  (3DMatch RRE 2.37 to 2.02, 3DLoMatch 3.57 to 2.99) and *lowers* RR on both benchmarks
+  (90.5 to 89.9 and 55.3 to 50.8) at 17 times the runtime. RANSAC maximises inliers under
+  its own 5 cm threshold, which is not the recall criterion, so more search finds
+  better-supported but less correct alignments. `0.999` is kept: it is both faster and better.
+
+The remaining test is to run CoFiNet's released checkpoint through this evaluation code. If
+it scores near 64 the difference is in the model; if it scores near 54 the difference is in
+the harness.
+
+## Reproducing
 
 ```shell
 # both benchmarks, sweeping 5000/2500/1000/500/250 sampled correspondences
-BENCH=3DMatch   sbatch scripts/slurm_eval_sweep.sh configs/test/ocfnet_overlap_both.yaml
-BENCH=3DLoMatch sbatch scripts/slurm_eval_sweep.sh configs/test/ocfnet_overlap_both.yaml
+BENCH=3DMatch   sbatch scripts/slurm_eval_sweep.sh configs/test/ocfnet_uniform_ovlloss_rope.yaml
+BENCH=3DLoMatch sbatch scripts/slurm_eval_sweep.sh configs/test/ocfnet_uniform_ovlloss_rope.yaml
 
-python scripts/collect_results.py snapshot/ocfnet_overlap_both_test --markdown
+python scripts/collect_results.py snapshot/ocfnet_uniform_ovlloss_rope_test --markdown
 ```
 
-`sinkhorn_iters` in the test config must match the value the model was trained with. The
-overlap score acts only through the Sinkhorn marginals, so a truncated transport applies it
-only partially and understates the overlap-guided models.
+`sinkhorn_iters` in the test config must match the value the model was trained with, and
+`batch_size` must be 1: the benchmark writes one transform per pair, so a batched loader
+produces `ceil(pairs/B)` estimates and the write walks off the end of the array.
 
 The evaluation script appends IR and FMR to `est_traj/<benchmark>/<samples>/result` rather
 than printing them, so read that file rather than the job's stdout.

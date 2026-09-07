@@ -19,8 +19,13 @@ from lib.benchmark import read_trajectory, read_pairs, read_trajectory_info, wri
 _EPS = 1e-7  # To prevent division by zero
 
 # open3d replaced the second argument of RANSACConvergenceCriteria (max_validation) by a
-# confidence in 0.12
-RANSAC_CONFIDENCE = 0.999
+# confidence in 0.12. This is not a cosmetic change: the confidence criterion stops RANSAC
+# after log(1-c)/log(1-w^n) draws, which at w=0.61 is 27 iterations -- against the 50000
+# CoFiNet runs, since for them the second argument was max_validation and never terminated
+# the search. Worse, it makes a better model search *less*: raising the inlier ratio lowers
+# the iteration count. Override with RANSAC_CONFIDENCE=... to compare.
+import os as _os
+RANSAC_CONFIDENCE = float(_os.environ.get('RANSAC_CONFIDENCE', 0.999))
 
 
 def get_registration_module():

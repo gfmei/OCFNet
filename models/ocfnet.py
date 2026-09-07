@@ -95,6 +95,24 @@ def overlap_optimal_transport(cost, mu, nu, bin_cost, iters=20, epsilon=0.05, ep
     return log_plan + total.log().unsqueeze(-1)  # undo the normalisation
 
 
+def overlap_bias(cost, src_score, tgt_score, weight, epsilon=None, eps=1e-6):
+    """Add lambda*(log o_i + log o_j) to the log-potential of a transport problem.
+
+    The marginals cannot steer *selection*: Sinkhorn factorises as P_ij = u_i K_ij v_j, and a
+    row-wise arg-max over j drops u_i entirely, so a source-side marginal only rescales a row
+    and never changes which target that row picks. Putting the score in the cost instead puts
+    it inside K_ij, where the target term varies along the row and does re-rank. The source
+    term is still constant along a row -- o_i says nothing about which target is right -- but
+    it now reaches the mutual check, which arg-maxes down the columns.
+
+    `cost` is a log-potential when epsilon is None (the 'inner' route) and a distance
+    otherwise, so the bias is added with the sign that makes a high score cheaper in both.
+    """
+    bias = (weight * (src_score.clamp(min=eps).log()[..., :, None]
+                      + tgt_score.clamp(min=eps).log()[..., None, :]))
+    return cost + bias if epsilon is None else cost - epsilon * bias
+
+
 def feature_similarity(feats0, feats1, temperature=None):
     """A log-potential for Sinkhorn, CoFiNet Eq. (1) style.
 
@@ -637,6 +655,17 @@ class OCFNet(nn.Module):
             raise ValueError(f'patch_grouping must be voronoi_scored or voronoi, '
                              f'got {self.patch_grouping!r}: patches must be disjoint')
         self.fine_marginals = config.get('fine_marginals', 'uniform')
+        # which overlap score feeds the point-level marginals when the patch refiner runs:
+        # 'pair'  -- o_ik from the refiner, "visible in *this* patch" (Eq. 5 as written)
+        # 'point' -- the decoder's per-point score, "visible at all". The pair head plateaus
+        # near the chance level of the balanced BCE (0.62 against log 2) while the per-point
+        # head reaches 0.38, so the pair score can be the weaker signal of the two.
+        # lambda of the cost-side overlap bias; 0 disables it and keeps the plain cost
+        self.overlap_cost_weight = float(config.get('overlap_cost_weight', 0.0))
+        self.fine_overlap_source = config.get('fine_overlap_source', 'pair')
+        if self.fine_overlap_source not in ('pair', 'point'):
+            raise ValueError(f'fine_overlap_source must be pair or point, '
+                             f'got {self.fine_overlap_source!r}')
         # 'uniform' -- every super-point carries one unit of mass, as CoFiNet does.
         # 'overlap' -- Eq. (5), mass proportional to the overlap score. The latter makes a
         # row's total plan mass scale with its score, so selecting the global top-k favours
@@ -792,6 +821,9 @@ class OCFNet(nn.Module):
             src_marginal, tgt_marginal = shape(src_super_overlap, src_mask), shape(tgt_super_overlap, tgt_mask)
         else:
             src_marginal, tgt_marginal = src_mask.float(), tgt_mask.float()
+        if self.overlap_cost_weight > 0 and self.use_overlap_head:
+            cost = overlap_bias(cost, src_super_overlap * src_mask, tgt_super_overlap * tgt_mask,
+                                self.overlap_cost_weight, epsilon)
         coarse_log_plan = overlap_optimal_transport(
             cost, src_marginal, tgt_marginal, self.bin_score,
             iters=self.sinkhorn_iters, epsilon=epsilon,
@@ -915,7 +947,9 @@ class OCFNet(nn.Module):
                 src_patch_feats, tgt_patch_feats,
                 src_ok.detach() > 0, tgt_ok.detach() > 0, src_offsets, tgt_offsets)
             # the marginal now says "matchable against *this* patch", not "matchable at all"
-            if self.fine_marginals != 'uniform':
+            # -- but only when the pair score is the one asked for. `src_marginal` already
+            # holds the per-point score from above, so 'point' simply leaves it alone.
+            if self.fine_marginals != 'uniform' and self.fine_overlap_source == 'pair':
                 src_marginal, tgt_marginal = src_pair * src_ok, tgt_pair * tgt_ok
             if self.gt_overlap and correspondences is not None:
                 # teacher forcing at the point level too: the true o_ik replaces the
@@ -943,6 +977,10 @@ class OCFNet(nn.Module):
         else:
             patch_cost = normalised_feature_cost(src_patch_feats, tgt_patch_feats)
             patch_eps = self.sinkhorn_epsilon
+        if self.overlap_cost_weight > 0 and self.use_overlap_head:
+            # the same scores the marginals would have used, so the two routes are comparable
+            patch_cost = overlap_bias(patch_cost, src_marginal, tgt_marginal,
+                                      self.overlap_cost_weight, patch_eps)
         fine.update({
             # same argument as the coarse stage: when the marginal is a matchability score
             # the slack would absorb that mass a second time
