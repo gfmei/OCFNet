@@ -192,15 +192,15 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 
 <table>
 <thead>
-  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th></tr>
-  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
 </thead>
 <tbody>
-  <tr><td align="center">5000</td><td align="right">90.1</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.37</td><td align="right">0.078</td><td align="right">89.7</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.25</td><td align="right">0.073</td></tr>
-  <tr><td align="center">2500</td><td align="right">89.8</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.29</td><td align="right">0.075</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.30</td><td align="right">0.070</td></tr>
-  <tr><td align="center">1000</td><td align="right">89.8</td><td align="right">60.9</td><td align="right">97.3</td><td align="right">2.17</td><td align="right">0.071</td><td align="right">89.3</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.29</td><td align="right">0.073</td></tr>
-  <tr><td align="center">500</td><td align="right">90.8</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.32</td><td align="right">0.076</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.38</td><td align="right">0.072</td></tr>
-  <tr><td align="center">250</td><td align="right">89.4</td><td align="right">60.6</td><td align="right">97.4</td><td align="right">2.30</td><td align="right">0.077</td><td align="right">89.0</td><td align="right">61.3</td><td align="right">96.2</td><td align="right">2.34</td><td align="right">0.075</td></tr>
+  <tr><td align="center">5000</td><td align="right">90.1</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.37</td><td align="right">0.078</td><td align="right">89.7</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.25</td><td align="right">0.073</td><td align="right"><i>89.3</i></td><td align="right"><i>49.8</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">2500</td><td align="right">89.8</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.29</td><td align="right">0.075</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.30</td><td align="right">0.070</td><td align="right"><i>88.9</i></td><td align="right"><i>51.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">1000</td><td align="right">89.8</td><td align="right">60.9</td><td align="right">97.3</td><td align="right">2.17</td><td align="right">0.071</td><td align="right">89.3</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.29</td><td align="right">0.073</td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">500</td><td align="right">90.8</td><td align="right">60.8</td><td align="right">97.3</td><td align="right">2.32</td><td align="right">0.076</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.38</td><td align="right">0.072</td><td align="right"><i>87.4</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.2</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">250</td><td align="right">89.4</td><td align="right">60.6</td><td align="right">97.4</td><td align="right">2.30</td><td align="right">0.077</td><td align="right">89.0</td><td align="right">61.3</td><td align="right">96.2</td><td align="right">2.34</td><td align="right">0.075</td><td align="right"><i>87.0</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
 </tbody>
 </table>
 
@@ -208,15 +208,15 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 
 <table>
 <thead>
-  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th></tr>
-  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
 </thead>
 <tbody>
-  <tr><td align="center">5000</td><td align="right">55.1</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.60</td><td align="right">0.106</td><td align="right">53.3</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.46</td><td align="right">0.102</td></tr>
-  <tr><td align="center">2500</td><td align="right">55.5</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.50</td><td align="right">0.102</td><td align="right">53.2</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.62</td><td align="right">0.111</td></tr>
-  <tr><td align="center">1000</td><td align="right">55.4</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.70</td><td align="right">0.110</td><td align="right">54.0</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.59</td><td align="right">0.106</td></tr>
-  <tr><td align="center">500</td><td align="right">55.3</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.72</td><td align="right">0.109</td><td align="right">53.1</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.51</td><td align="right">0.107</td></tr>
-  <tr><td align="center">250</td><td align="right">54.4</td><td align="right">27.4</td><td align="right">77.0</td><td align="right">3.58</td><td align="right">0.107</td><td align="right">53.1</td><td align="right">27.5</td><td align="right">76.6</td><td align="right">3.52</td><td align="right">0.104</td></tr>
+  <tr><td align="center">5000</td><td align="right">55.1</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.60</td><td align="right">0.106</td><td align="right">53.3</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.46</td><td align="right">0.102</td><td align="right"><i>67.5</i></td><td align="right"><i>24.4</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">2500</td><td align="right">55.5</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.50</td><td align="right">0.102</td><td align="right">53.2</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.62</td><td align="right">0.111</td><td align="right"><i>66.2</i></td><td align="right"><i>25.9</i></td><td align="right"><i>83.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">1000</td><td align="right">55.4</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.70</td><td align="right">0.110</td><td align="right">54.0</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.59</td><td align="right">0.106</td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">500</td><td align="right">55.3</td><td align="right">27.5</td><td align="right">77.2</td><td align="right">3.72</td><td align="right">0.109</td><td align="right">53.1</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.51</td><td align="right">0.107</td><td align="right"><i>63.1</i></td><td align="right"><i>26.8</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">250</td><td align="right">54.4</td><td align="right">27.4</td><td align="right">77.0</td><td align="right">3.58</td><td align="right">0.107</td><td align="right">53.1</td><td align="right">27.5</td><td align="right">76.6</td><td align="right">3.52</td><td align="right">0.104</td><td align="right"><i>61.0</i></td><td align="right"><i>26.9</i></td><td align="right"><i>82.6</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
 </tbody>
 </table>
 
@@ -236,22 +236,33 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 </tbody>
 </table>
 
-<sub>Published rows are the 1000-sample column of each paper's Table 1, so the measured rows
-are quoted at 1000 samples too. Both measured models exceed the published CoFiNet inlier
+<sub>CoFiNet's columns are Table 1 of arXiv:2110.14076 verbatim; that paper reports only RR,
+FMR and IR for these two benchmarks, so its RRE and RTE are left blank. Published rows below
+are the 1000-sample column of each paper's Table 1, so the measured rows are quoted at 1000
+samples too. Both measured models exceed the published CoFiNet inlier
 ratio by about 9 points on 3DMatch and reach it on 3DLoMatch. 3DLoMatch registration recall
 is 9 to 11 points below CoFiNet's despite the higher inlier ratio; that gap is not
 understood -- see the note below.</sub>
 
 ### Reading the sampling columns
 
-The columns are flat because the model does not produce enough correspondences for the
-sample count to bind: the readout emits about 730 per pair on 3DMatch and 420 on 3DLoMatch,
-so every column from 5000 down to 500 draws from essentially the same set and IR is
-identical to three decimals. The spread in RR (89.4 to 90.8 on 3DMatch) is RANSAC seed
-noise, not a sampling trend, and should not be read as one. A genuine sampling curve would
-need a larger correspondence pool, which means relaxing the `mutual` and `deduplicate`
-readout -- measured at 6228 correspondences per pair, that lowers 3DLoMatch RR from 55.7 to
-54.8, so the pool is small by choice.
+The two sets of columns do not mean the same thing, and the comparison is weaker than the
+table's layout suggests. CoFiNet genuinely samples: it produces enough correspondences that
+"5000 samples" uses 5000 of them, which is why its numbers move across the row -- registration
+recall falls from 67.5 to 61.0 on 3DLoMatch as the budget shrinks, while its inlier ratio
+*rises*, 24.4 to 26.9, because a smaller sample keeps the most confident matches.
+
+Ours barely move because there is nothing to sample from: the readout emits about 730
+correspondences per pair on 3DMatch and 420 on 3DLoMatch, so every column from 5000 down to
+500 draws essentially the whole pool and the inlier ratio is identical to three decimals. Our
+"5000" column is really 420 correspondences. The spread in RR (89.4 to 90.8 on 3DMatch) is
+RANSAC seed noise rather than a sampling trend and should not be read as one.
+
+One consequence is visible in the 3DLoMatch table: the recall gap to CoFiNet narrows from
+12.4 points at 5000 samples to 6.6 at 250, simply because their budget falls to meet our pool
+while ours never changes. A genuine sampling curve on our side would need a larger pool, which
+means relaxing the `mutual` and `deduplicate` readout; measured at 6228 correspondences per
+pair that lowers 3DLoMatch RR from 55.7 to 54.8, so the small pool is a deliberate choice.
 
 ### The overlap score
 
