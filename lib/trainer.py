@@ -157,6 +157,8 @@ class Trainer(object):
                 ################################
                 # update to stats_meter
                 for key,value in stats.items():
+                    if key not in stats_meter:      # a term added to the loss but not to
+                        stats_meter[key] = AverageMeter()   # stats_dict() -- log it, do not die
                     stats_meter[key].update(value)
             except RuntimeError as inst:
                 pass
@@ -379,7 +381,7 @@ class OCFNetTrainer(Trainer):
     def stats_dict(self):
         return {key: 0. for key in ['loss', 'coarse_loss', 'fine_loss', 'coarse_overlap_loss',
                                     'fine_overlap_loss', 'descriptor_loss', 'infonce_loss', 'pair_overlap_loss',
-                                    'coarse_infonce_loss',
+                                    'coarse_infonce_loss', 'coarse_circle_loss',
                                     'inlier_loss', 'coarse_inlier_loss', 'coarse_ir',
                                     'inlier_ratio', 'ir_ceiling', 'ir_chance']}
 

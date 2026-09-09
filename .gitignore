@@ -132,4 +132,8 @@ data
 weights/
 snapshot/
 logs/
+# these are symlinks when the run directory lives on another scratch quota, and a
+# trailing-slash pattern does not match a symlink
+snapshot
+logs
 demo_output/

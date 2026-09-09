@@ -215,6 +215,15 @@ def read_pairs(src_path,tgt_path,n_points):
 
 
 def evaluate_registration(num_fragment, result, result_pairs, gt_pairs, gt, gt_info, err2=0.2):
+    # err2 = 0.2 is the Predator/CoFiNet convention and is kept deliberately, so RR here is
+    # directly comparable to their published tables. GeoTransformer instead tests
+    # `error < rmse_threshold ** 2` (0.04); applied to the quadratic form below that yields
+    # 8.9% on 3DLoMatch against 54.5% at 0.2, so their error term must be scaled differently.
+    # Their `compute_transform_error` is not in utils/registration.py or utils/pointcloud.py,
+    # so the two cannot be reconciled from the source -- do not "align" this to 0.04.
+    # Inlier ratio and feature match recall, by contrast, are already algorithmically
+    # identical to GeoTransformer's (transform the source, Euclidean residual, radius 0.1;
+    # FMR at ratio >= 0.05, averaged per scene then across scenes).
     """
     Evaluates the performance of the registration algorithm according to the evaluation protocol defined
     by the 3DMatch/Redwood datasets. The evaluation protocol can be found at http://redwood-data.org/indoor/registration.html

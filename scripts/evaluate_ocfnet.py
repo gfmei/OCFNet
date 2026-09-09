@@ -87,6 +87,15 @@ def benchmark_ocfnet(files, n_points, exp_dir, whichbenchmark, inlier_distance_t
     with open(os.path.join(exp_dir, 'result'), 'a') as f:
         f.write(f'Inlier ratio: {np.mean(per_scene):.3f} : +- {np.std(per_scene):.3f}\n')
         f.write(f'Feature match recall: {np.mean(fmr):.3f} : +- {np.std(fmr):.3f}\n')
+        # Both aggregations, because the literature is not consistent: this file averages
+        # per scene and then over scenes (Predator/CoFiNet), while GeoTransformer reports a
+        # global mean over pairs. For the inlier ratio the two agree to 3e-4, but the scenes
+        # have very different pair counts so feature match recall moves ~2 points between
+        # them -- enough to matter when quoting against a published table.
+        flat = np.asarray(inlier_ratios)
+        f.write(f'Inlier ratio (global mean): {flat.mean():.3f}\n')
+        f.write(f'Feature match recall (global mean): '
+                f'{(flat > inlier_ratio_threshold).mean():.3f}\n')
         f.write(f'Correspondences per pair: {np.mean(counts):.0f} '
                 f'(from {np.mean(coarse_counts):.0f} coarse matches)\n')
         if not np.isnan(coarse_ratios).all():

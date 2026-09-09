@@ -85,10 +85,19 @@ class OCFNetTester(OCFNetTrainer):
                     input_dict['tgt_C'], input_dict['tgt_F'], device=self.device)
 
                 # no correspondences passed: the patches come from the predicted coarse
-                # matches, which is what test time looks like
-                output = self.model(sinput_src, sinput_tgt,
-                                    src_xyz=input_dict['pcd_src'].to(self.device),
-                                    tgt_xyz=input_dict['pcd_tgt'].to(self.device))
+                # matches, which is what test time looks like.
+                # OCFNET_ORACLE_COARSE=1 substitutes the ground-truth patch pairs instead.
+                # That is a *diagnostic upper bound* -- it answers "if coarse selection were
+                # perfect, would this pair register?" -- and never a result to report as a
+                # method: the weights were fitted against predicted pairs, so substituting
+                # truth at inference measures headroom, not performance.
+                oracle = os.environ.get('OCFNET_ORACLE_COARSE') == '1'
+                output = self.model(
+                    sinput_src, sinput_tgt,
+                    correspondences=(input_dict['correspondences'].long().to(self.device)
+                                     if oracle else None),
+                    src_xyz=input_dict['pcd_src'].to(self.device),
+                    tgt_xyz=input_dict['pcd_tgt'].to(self.device))
                 matches, scores = self.model.point_correspondences(output)
 
                 data = dict()

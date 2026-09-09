@@ -681,6 +681,14 @@ class OCFNet(nn.Module):
         self.overlap_sharpen = float(config.get('overlap_sharpen', 1.0))
         self.overlap_threshold = float(config.get('overlap_threshold', 0.0))
         self.readout_mutual = config.get('readout_mutual', True)
+        # CoFiNet keeps the *union* of the row and the column arg-max
+        # (`logical_or(row_map, col_map)`), which covers points of both clouds; `mutual` is
+        # the intersection and covers only points both clouds agree on. 'row' is neither.
+        self.readout_select = config.get('readout_select', 'row')
+        if self.readout_select not in ('row', 'union'):
+            raise ValueError(f"readout_select must be row or union, got {self.readout_select!r}")
+        # scale the fine confidence by the patch pair's coarse confidence, as CoFiNet does
+        self.readout_scale_by_coarse = config.get('readout_scale_by_coarse', False)
         self.readout_deduplicate = config.get('readout_deduplicate', True)
         self.readout_beat_slack = config.get('readout_beat_slack', False)
         self.fine_dustbin = config.get('fine_dustbin', False)
@@ -843,6 +851,9 @@ class OCFNet(nn.Module):
             'src_super_mask': src_mask, 'tgt_super_mask': tgt_mask,
             'src_super_overlap': src_super_overlap, 'tgt_super_overlap': tgt_super_overlap,
             'coarse_log_plan': coarse_log_plan,
+            # super-point features, for a loss that works on feature distance directly
+            # rather than on the transport plan
+            'src_super_feats': src_feats, 'tgt_super_feats': tgt_feats,
             # normalised for the descriptor loss, raw for the patch similarity: CoFiNet
             # builds its local scores from the decoder output directly (src_final_f)
             'src_feats': F.normalize(src_out.features[:, :-1], p=2, dim=1),
@@ -888,12 +899,21 @@ class OCFNet(nn.Module):
                 found = torch.cat([found[~short[found[:, 0]]], topk[short[topk[:, 0]]]], dim=0)
             pairs = torch.stack([src_slot_row[found[:, 0], found[:, 1]],
                                  tgt_slot_row[found[:, 0], found[:, 2]]], dim=1)
+            # CoFiNet scales every fine score by the confidence of the patch pair it came
+            # from (`fine_score * node_corr_conf`), so a match inside a doubtful patch pair
+            # ranks below an equally strong match inside a confident one.
+            pair_conf = plan[found[:, 0], found[:, 1], found[:, 2]]
         if self.training and pairs.shape[0] > self.max_coarse_matches:
             pick = torch.randperm(pairs.shape[0], device=pairs.device)[:self.max_coarse_matches]
             pairs = pairs[pick]
+            if correspondences is None:
+                pair_conf = pair_conf[pick]
 
+        if correspondences is not None:
+            pair_conf = pairs.new_ones(pairs.shape[0], dtype=torch.float32)
         fine = {'src_patch_id': src_patch_id, 'tgt_patch_id': tgt_patch_id,
                 'src_slot': src_slot, 'tgt_slot': tgt_slot, 'coarse_matches': pairs,
+                'patch_coarse_conf': pair_conf,
                 'src_super_batch': src_super.indices[:, 0].long(),
                 'tgt_super_batch': tgt_super.indices[:, 0].long()}
         if pairs.shape[0] == 0:
@@ -903,7 +923,8 @@ class OCFNet(nn.Module):
                          'patch_tgt_index': torch.zeros(0, 1, dtype=torch.long, device=device),
                          'patch_src_valid': torch.zeros(0, 1, dtype=torch.bool, device=device),
                          'patch_tgt_valid': torch.zeros(0, 1, dtype=torch.bool, device=device),
-                         'patch_batch': torch.zeros(0, dtype=torch.long, device=device)})
+                         'patch_batch': torch.zeros(0, dtype=torch.long, device=device),
+                         'patch_coarse_conf': torch.zeros(0, device=device)})
             return fine
 
         # candidates around every super-point, then the K best of them by overlap score
@@ -1035,6 +1056,28 @@ class OCFNet(nn.Module):
         src = output['patch_src_index'][keep]
         tgt = torch.gather(output['patch_tgt_index'], 1, col)[keep]
         confidence = best[keep]
+        # scale each part by its patch pair's coarse confidence *before* concatenating: a
+        # boolean mask flattens pair by pair, so a mask concatenated across the two parts
+        # would not line up with a confidence vector that is row-part then column-part.
+        if self.readout_scale_by_coarse:
+            confidence = confidence * output['patch_coarse_conf'][:, None].expand_as(keep)[keep]
+
+        if self.readout_select == 'union' and not mutual:
+            # CoFiNet's `logical_or(row_map, col_map)`: add, for every target point, the
+            # source that chose it. The row pass above only covers source points, so a target
+            # point nobody's arg-max lands on contributes nothing -- which is what narrows
+            # the spatial spread of the correspondence set.
+            back_best, back_row = scores.max(dim=1)           # best source per target point
+            keep_t = output['patch_tgt_valid'] & (back_best > min_score)
+            if beat_slack:
+                keep_t = keep_t & (back_best > plan[:, -1, :-1].exp())
+            src_t = torch.gather(output['patch_src_index'], 1, back_row)[keep_t]
+            tgt_t = output['patch_tgt_index'][keep_t]
+            conf_t = back_best[keep_t]
+            if self.readout_scale_by_coarse:
+                conf_t = conf_t * output['patch_coarse_conf'][:, None].expand_as(keep_t)[keep_t]
+            src = torch.cat([src, src_t]); tgt = torch.cat([tgt, tgt_t])
+            confidence = torch.cat([confidence, conf_t])
 
         if deduplicate and src.numel():
             # candidate sets overlap, so a point can be proposed by several patches with
@@ -1074,6 +1117,14 @@ class OCFLoss(nn.Module):
         self.w_coarse_infonce = config.get('w_coarse_infonce_loss', 1.0)
         self.max_points = config.get('max_points', 256)
         self.w_coarse = config.get('w_coarse_loss', 1.0)
+        # overlap-aware circle loss on the super-point features; 0 disables it
+        self.w_coarse_circle = config.get('w_coarse_circle_loss', 0.0)
+        self.circle_positive_overlap = float(config.get('circle_positive_overlap', 0.1))
+        self.circle_pos_margin = float(config.get('circle_pos_margin', 0.1))
+        self.circle_neg_margin = float(config.get('circle_neg_margin', 1.4))
+        self.circle_pos_optimal = float(config.get('circle_pos_optimal', 0.1))
+        self.circle_neg_optimal = float(config.get('circle_neg_optimal', 1.4))
+        self.circle_log_scale = float(config.get('circle_log_scale', 24.0))
         self.w_fine = config.get('w_fine_loss', 1.0)
         # trains the reported inlier ratio directly, per row, so the dustbin
         # cannot satisfy it the way it satisfies the matching loss
@@ -1172,6 +1223,37 @@ class OCFLoss(nn.Module):
         weight = torch.where(target >= 0.5, 1 - positive, positive)
         return (weight * loss).sum() / weight.sum().clamp(min=1e-6)
 
+    def overlap_circle_loss(self, src_feats, tgt_feats, ratio, src_mask, tgt_mask):
+        """Overlap-aware circle loss on the super-point features (GeoTransformer, Eq. 12).
+
+        Our coarse loss is a weighted cross entropy on the transport plan, so it is purely
+        competitive: it asks the true patch pair to score *higher* than the others and never
+        asks a non-overlapping pair to score *low*. The measured failure is the other way
+        round -- on 21% of 3DLoMatch pairs the true pair never reaches the top-128 because
+        wrong pairs score too well -- so a term that pushes zero-overlap pairs apart with a
+        margin addresses something the plan loss structurally cannot.
+
+        Positives are weighted by sqrt of the overlap ratio, negatives are the pairs with no
+        overlap at all; both weights are detached, as in the reference implementation.
+        """
+        valid = src_mask[:, :, None].bool() & tgt_mask[:, None, :].bool()
+        pos = (ratio > self.circle_positive_overlap) & valid
+        neg = (ratio == 0) & valid
+        # distance between L2-normalised features, in [0, 2]
+        d = torch.cdist(F.normalize(src_feats, dim=-1), F.normalize(tgt_feats, dim=-1))
+
+        pos_w = (F.relu(d - self.circle_pos_optimal) * ratio.clamp(min=0).sqrt()).detach()
+        neg_w = F.relu(self.circle_neg_optimal - d).detach()
+        big = torch.finfo(d.dtype).max
+        lse_p = torch.logsumexp(torch.where(
+            pos, self.circle_log_scale * (d - self.circle_pos_margin) * pos_w, -big * torch.ones_like(d)), dim=-1)
+        lse_n = torch.logsumexp(torch.where(
+            neg, self.circle_log_scale * (self.circle_neg_margin - d) * neg_w, -big * torch.ones_like(d)), dim=-1)
+        rows = pos.any(-1) & neg.any(-1)          # a row needs both to contribute
+        if not bool(rows.any()):
+            return d.new_zeros(())
+        return (F.softplus(lse_p + lse_n)[rows] / self.circle_log_scale).mean()
+
     @staticmethod
     def _matching_loss(log_plan, weights):
         """-sum(w * log G) / sum(w), the form used at both levels."""
@@ -1259,6 +1341,11 @@ class OCFLoss(nn.Module):
             coarse_target = torch.zeros_like(output['coarse_log_plan'])
             coarse_target[:, :-1, :-1] = ratio
         coarse_loss = self._matching_loss(output['coarse_log_plan'], coarse_target)
+        if self.w_coarse_circle > 0:
+            coarse_circle_loss = self.overlap_circle_loss(
+                output['src_super_feats'], output['tgt_super_feats'], ratio, src_mask, tgt_mask)
+        else:
+            coarse_circle_loss = output['coarse_log_plan'].new_zeros(())
         # the coarse matches are read out by ranking (mutual maximum, or top-k), so the true
         # partner has to come first -- mass alone does not guarantee that
         coarse_infonce_loss = self.patch_infonce(output['coarse_log_plan'], ratio > 0, src_mask)
@@ -1365,10 +1452,12 @@ class OCFLoss(nn.Module):
                 + self.w_descriptor * descriptor_loss
                 + self.w_patch_infonce * infonce_loss
                 + self.w_coarse_infonce * coarse_infonce_loss
+                + self.w_coarse_circle * coarse_circle_loss
                 + self.w_coarse_inlier * coarse_inlier_loss
                 + self.w_fine_overlap * pair_overlap_loss
                 + self.w_inlier * inlier_loss)
         return {'loss': loss, 'coarse_loss': coarse_loss, 'fine_loss': fine_loss,
+                'coarse_circle_loss': coarse_circle_loss,
                 'coarse_infonce_loss': coarse_infonce_loss,
                 'coarse_inlier_loss': coarse_inlier_loss, 'coarse_ir': coarse_ir,
                 'coarse_overlap_loss': coarse_overlap_loss, 'fine_overlap_loss': fine_overlap_loss,
