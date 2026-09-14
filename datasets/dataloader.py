@@ -53,7 +53,8 @@ def get_datasets(config):
     if(config.dataset=='indoor'):
         info_train = load_obj(config.train_info)
         info_val = load_obj(config.val_info)
-        info_benchmark = load_obj(f'configs/indoor/{config.benchmark}.pkl')
+        # the split the per-epoch registration check draws from (see trainer.py)
+        info_benchmark = load_obj(f"configs/indoor/{config.get('check_benchmark', config.benchmark)}.pkl")
 
         train_set = IndoorDataset(info_train,config,data_augmentation=True)
         val_set = IndoorDataset(info_val,config,data_augmentation=False)

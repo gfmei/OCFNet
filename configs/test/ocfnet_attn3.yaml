@@ -1,11 +1,11 @@
 misc:
-  exp_dir: ocfnet_uniform_ovlloss_rope
-  mode: train
+  exp_dir: ocfnet_attn3_test
+  mode: test
   gpu_mode: True
   verbose: True
   verbose_freq: 500
   snapshot_freq: 1
-  pretrain: ''
+  pretrain: snapshot/ocfnet_attn3/checkpoints/model_last.pth
 
 
 model:
@@ -19,7 +19,7 @@ model:
 overlap_attention_module:
   attention_feats_dim: 256
   num_head: 4
-  nets: ['self','cross','self']
+  nets: ['self','cross','self','cross','self','cross']  # 3 rounds, no circle loss: isolates attention depth
   # 'self' layers are masked multi-head self-attention (torch's fused attention) with a 3D
   # rotary position embedding on the voxel coordinates; 'cross' layers get no position
   # embedding, the two clouds are not registered yet
@@ -55,7 +55,6 @@ coarse_to_fine:
   readout_deduplicate: True   # and one per source point: 0.356 -> 0.526 inlier ratio
   min_coarse_matches: 128  # at inference, fall back to the top-k pairs if the
                            # threshold selects fewer than this
-  check_benchmark: 3DLoMatch  # per-epoch check + best_recall on the split where recall discriminates
   eval_pairs: 300          # benchmark pairs registered after every epoch
   matching_radius: 0.1     # CoFiNet's pos_margin; the radius the inlier ratio uses
 
@@ -115,7 +114,7 @@ dataset:
   # implementation is compared against: their effective batch is 4 (batch 1, iter_size 4),
   # so an epoch is 5160 optimiser steps against 645 at batch 32 -- eight times more learning
   # per epoch. Batch 8 recovers most of that while keeping the GPU busy.
-  batch_size: 12
+  batch_size: 1   # the benchmark runs pair by pair
   num_workers: 6 
   augment_noise: 0.005
   train_info: configs/indoor/train_info.pkl

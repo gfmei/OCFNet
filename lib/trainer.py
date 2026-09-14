@@ -29,7 +29,14 @@ class Trainer(object):
         self.scheduler_freq = args.scheduler_freq
         self.snapshot_freq = args.snapshot_freq
         self.snapshot_dir = args.snapshot_dir 
-        self.benchmark = args.benchmark
+        # `check_benchmark` is the split the per-epoch registration check runs on and that
+        # picks model_best_recall. It defaults to `benchmark`, but on 3DMatch the 300-pair
+        # registered rate saturates at 0.96-0.99 and best_recall lands on a lucky early
+        # epoch (measured: epoch 6 of 42, fine IR 0.50 against 0.73 at the end). On
+        # 3DLoMatch the same number spans 0.54-0.60 and separates epochs, so new runs set
+        # check_benchmark: 3DLoMatch. A separate key so a running job's handoff, which
+        # re-reads the config, keeps comparing best_recall on the scale it was saved on.
+        self.benchmark = args.get('check_benchmark', args.benchmark)
         self.iter_size = args.iter_size
         self.verbose_freq= args.verbose_freq
 
