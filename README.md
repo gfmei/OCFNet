@@ -188,7 +188,7 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
   on the super-point features (the coarse loss of GeoTransformer) alongside the transport
   loss. Uniform transport marginals with the dustbin on.
 - **our improved CoFiNet** -- one round of attention with RoPE-3D and no overlap head: the
-  CoFiNet architecture on this code base. It is the reference the ablation below builds from.
+  CoFiNet architecture on this code base.
 
 ### 3DMatch
 
@@ -249,26 +249,6 @@ expected from the port: the published model runs on MinkowskiEngine, this one on
 the two engines differ in how sparse convolutions build their kernel maps and handle
 submanifold layers, so the backbone is not the same function even at identical weights and
 an exact reproduction was never on the table. The rest is measured below.
-
-### What each component is worth
-
-At 1000 samples, all rows with RoPE-3D, the overlap head and both overlap losses, last
-checkpoint of 150 epochs. `attn` is the number of self/cross rounds at the coarse level.
-
-| configuration | 3DMatch IR | 3DLoMatch RR | 3DLoMatch IR | 3DLoMatch FMR |
-| --- | --- | --- | --- | --- |
-| 1 round (baseline) | 60.9 | 55.4 | 27.5 | 77.2 |
-| 2 rounds | 68.9 | 57.2 | 33.2 | 76.4 |
-| 3 rounds | 70.4 | 57.5 | 35.3 | 76.7 |
-| 2 rounds + circle loss | 68.3 | 58.1 | 33.4 | 77.3 |
-| **3 rounds + circle loss (our OCFNet)** | 69.8 | 58.6 | 35.1 | 78.0 |
-
-The two ingredients separate cleanly. Attention depth drives inlier ratio -- about +1.5 to
-+2 on both benchmarks per added round, with registration recall unchanged. The circle loss
-drives 3DLoMatch recall and feature match recall -- about +1 each at both depths, with
-inlier ratio unchanged. It does so by pushing patch pairs with zero overlap apart in
-feature space with a margin, which the transport loss, being purely competitive, never
-asks for. Our OCFNet combines both.
 
 ### Reading the sampling columns
 
