@@ -170,6 +170,29 @@ Predator trains with `batch_size: 1` and `iter_size: 4` (gradient accumulation) 
 GPU; the overlap-attention module treats the whole batch as one cloud, so larger batches
 change the method rather than just the throughput.
 
+## Pretrained model
+
+The OCFNet weights of the Results section -- three rounds of coarse attention with RoPE-3D
+and the overlap-aware circle loss, 150 epochs on 3DMatch, 10.11 M parameters:
+
+| | |
+| --- | --- |
+| training run | `snapshot/ocfnet_geo/checkpoints/model_last.pth` (121 MB, resumable) |
+| release copy | `ocfnet_3dmatch.pth` (39 MB, weights only) |
+| config | `configs/train/ocfnet_geo.yaml` |
+
+The release copy is the same 166 tensors with the optimizer and scheduler state dropped;
+`_load_pretrain` takes those in a `try/except KeyError`, so either file loads unchanged.
+
+```python
+import torch
+state = torch.load('ocfnet_3dmatch.pth', map_location='cpu', weights_only=False)
+model.load_state_dict(state['state_dict'])          # epoch 149
+```
+
+To evaluate it, point `misc.pretrain` in `configs/test/ocfnet_geo.yaml` at the file and run
+the sweep from the Reproducing section below.
+
 ## Results
 
 3DMatch and 3DLoMatch, correspondence-based RANSAC over the non-consecutive pairs the
