@@ -175,18 +175,23 @@ change the method rather than just the throughput.
 The OCFNet weights of the Results section -- three rounds of coarse attention with RoPE-3D
 and the overlap-aware circle loss, 150 epochs on 3DMatch, 10.11 M parameters:
 
+Released at **[huggingface.co/Ryan-2026/OCFNet](https://huggingface.co/Ryan-2026/OCFNet)**.
+
 | | |
 | --- | --- |
+| release copy | `ocfnet_3dmatch.pth` on the Hub (39 MB, weights only) |
 | training run | `snapshot/ocfnet_geo/checkpoints/model_last.pth` (121 MB, resumable) |
-| release copy | `ocfnet_3dmatch.pth` (39 MB, weights only) |
-| config | `configs/train/ocfnet_geo.yaml` |
+| config | `configs/train/ocfnet_geo.yaml`, also `config.yaml` on the Hub |
 
 The release copy is the same 166 tensors with the optimizer and scheduler state dropped;
 `_load_pretrain` takes those in a `try/except KeyError`, so either file loads unchanged.
 
 ```python
 import torch
-state = torch.load('ocfnet_3dmatch.pth', map_location='cpu', weights_only=False)
+from huggingface_hub import hf_hub_download
+
+path = hf_hub_download('Ryan-2026/OCFNet', 'ocfnet_3dmatch.pth')
+state = torch.load(path, map_location='cpu', weights_only=False)
 model.load_state_dict(state['state_dict'])          # epoch 149
 ```
 
