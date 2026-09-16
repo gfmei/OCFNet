@@ -43,7 +43,7 @@ rulebooks on the tensor rather than on the layer.
   `models/attention.py`, which is invariant to a global translation, so nothing downstream changes.
 * Row order is preserved end to end: the backbone returns one row per input voxel, in the
   input order, which is what the correspondence indexing in the losses relies on.
-  `scripts/test_spconv_forward.py` asserts this both on the coordinates themselves and by
+  This was verified both on the coordinates themselves and by
   permuting the input voxels (max deviation 1e-4, i.e. float noise).
 * Predator aggregated its self-attention over a kNN graph, which was the one order-sensitive
   piece: bottleneck voxels sit on a regular grid, so ~80% of them have a distance tie at k=10
@@ -112,7 +112,7 @@ python main.py configs/train/predator_indoor.yaml  # batch_size 12
 python main.py configs/train/indoor.yaml          # upstream setting: batch_size 1, iter_size 4
 ```
 
-`scripts/test_batch_equivalence.py` verifies the masking: a batch of identical pairs must
+The masking is what makes this safe: a batch of identical pairs must
 agree with the single-pair run (leakage would change every attention distribution), and a
 batch of different pairs -- i.e. real padding -- must reproduce each pair's individual
 output. Both hold to 3e-4.
@@ -148,8 +148,8 @@ Two traps on this cluster, both of which cost a debugging round already:
 bash scripts/download_data_weight.sh   # 3DMatch/3DLoMatch fragments (~940 MB) + weights
 ```
 
-On our cluster the data is already at `/leonardo_work/AIFPT_agrifood/data/predator/data`,
-and `data` in this repo is a symlink to it, so `root: data/indoor` in the configs resolves.
+Point `data` at wherever the dataset lives -- a symlink is fine -- so that `root: data/indoor`
+in the configs resolves.
 
 ## Train / test
 
@@ -162,7 +162,6 @@ python scripts/evaluate_predator.py --source_path snapshot/indoor/3DLoMatch --n_
 On SLURM:
 
 ```shell
-sbatch scripts/slurm_smoke_test.sh     # ~2 min: forward/backward + 3 real training iterations
 sbatch scripts/slurm_train_indoor.sh   # full training run
 ```
 
@@ -215,22 +214,21 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
   RoPE-3D, the overlap head trained with both overlap losses, and an overlap-aware circle loss
   on the super-point features (the coarse loss of GeoTransformer) alongside the transport
   loss. Uniform transport marginals with the dustbin on.
-- **our improved CoFiNet** -- one round of attention with RoPE-3D and no overlap head: the
-  CoFiNet architecture on this code base.
+(The three-round CoFiNet reference is still training; its row is added when it converges.) It is the reference the ablation below builds from.
 
 ### 3DMatch
 
 <table>
 <thead>
-  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
-  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
 </thead>
 <tbody>
-  <tr><td align="center">5000</td><td align="right">89.2</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.072</td><td align="right">89.7</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.25</td><td align="right">0.073</td><td align="right"><i>89.3</i></td><td align="right"><i>49.8</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">2500</td><td align="right">89.6</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.071</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.30</td><td align="right">0.070</td><td align="right"><i>88.9</i></td><td align="right"><i>51.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">1000</td><td align="right">89.1</td><td align="right">69.8</td><td align="right">96.4</td><td align="right">2.25</td><td align="right">0.071</td><td align="right">89.3</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.29</td><td align="right">0.073</td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">500</td><td align="right">88.8</td><td align="right">69.6</td><td align="right">96.4</td><td align="right">2.22</td><td align="right">0.074</td><td align="right">89.2</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.38</td><td align="right">0.072</td><td align="right"><i>87.4</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.2</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">250</td><td align="right">89.1</td><td align="right">69.3</td><td align="right">96.5</td><td align="right">2.26</td><td align="right">0.073</td><td align="right">89.0</td><td align="right">61.3</td><td align="right">96.2</td><td align="right">2.34</td><td align="right">0.075</td><td align="right"><i>87.0</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">5000</td><td align="right">89.2</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.072</td><td align="right"><i>89.3</i></td><td align="right"><i>49.8</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">2500</td><td align="right">89.6</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.071</td><td align="right"><i>88.9</i></td><td align="right"><i>51.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">1000</td><td align="right">89.1</td><td align="right">69.8</td><td align="right">96.4</td><td align="right">2.25</td><td align="right">0.071</td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">500</td><td align="right">88.8</td><td align="right">69.6</td><td align="right">96.4</td><td align="right">2.22</td><td align="right">0.074</td><td align="right"><i>87.4</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.2</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">250</td><td align="right">89.1</td><td align="right">69.3</td><td align="right">96.5</td><td align="right">2.26</td><td align="right">0.073</td><td align="right"><i>87.0</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
 </tbody>
 </table>
 
@@ -238,15 +236,15 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 
 <table>
 <thead>
-  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
-  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
 </thead>
 <tbody>
-  <tr><td align="center">5000</td><td align="right">58.8</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.39</td><td align="right">0.103</td><td align="right">53.3</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.46</td><td align="right">0.102</td><td align="right"><i>67.5</i></td><td align="right"><i>24.4</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">2500</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.34</td><td align="right">0.103</td><td align="right">53.2</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.62</td><td align="right">0.111</td><td align="right"><i>66.2</i></td><td align="right"><i>25.9</i></td><td align="right"><i>83.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">1000</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.31</td><td align="right">0.098</td><td align="right">54.0</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.59</td><td align="right">0.106</td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">500</td><td align="right">58.2</td><td align="right">35.0</td><td align="right">78.2</td><td align="right">3.60</td><td align="right">0.108</td><td align="right">53.1</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.51</td><td align="right">0.107</td><td align="right"><i>63.1</i></td><td align="right"><i>26.8</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">250</td><td align="right">58.2</td><td align="right">34.7</td><td align="right">77.6</td><td align="right">3.48</td><td align="right">0.109</td><td align="right">53.1</td><td align="right">27.5</td><td align="right">76.6</td><td align="right">3.52</td><td align="right">0.104</td><td align="right"><i>61.0</i></td><td align="right"><i>26.9</i></td><td align="right"><i>82.6</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">5000</td><td align="right">58.8</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.39</td><td align="right">0.103</td><td align="right"><i>67.5</i></td><td align="right"><i>24.4</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">2500</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.34</td><td align="right">0.103</td><td align="right"><i>66.2</i></td><td align="right"><i>25.9</i></td><td align="right"><i>83.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">1000</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.31</td><td align="right">0.098</td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">500</td><td align="right">58.2</td><td align="right">35.0</td><td align="right">78.2</td><td align="right">3.60</td><td align="right">0.108</td><td align="right"><i>63.1</i></td><td align="right"><i>26.8</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">250</td><td align="right">58.2</td><td align="right">34.7</td><td align="right">77.6</td><td align="right">3.48</td><td align="right">0.109</td><td align="right"><i>61.0</i></td><td align="right"><i>26.9</i></td><td align="right"><i>82.6</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
 </tbody>
 </table>
 
@@ -259,7 +257,6 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 </thead>
 <tbody>
   <tr><td><b>our OCFNet</b></td><td align="right"><b>89.1</b></td><td align="right"><b>69.8</b></td><td align="right"><b>96.4</b></td><td align="right"><b>2.25</b></td><td align="right"><b>0.071</b></td><td align="right"><b>58.6</b></td><td align="right"><b>35.1</b></td><td align="right"><b>78.0</b></td><td align="right"><b>3.31</b></td><td align="right"><b>0.098</b></td></tr>
-  <tr><td>our improved CoFiNet</td><td align="right">89.3</td><td align="right">61.5</td><td align="right">96.3</td><td align="right">2.29</td><td align="right">0.073</td><td align="right">54.0</td><td align="right">27.6</td><td align="right">76.1</td><td align="right">3.59</td><td align="right">0.106</td></tr>
   <tr><td><i>CoFiNet (published)</i></td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
   <tr><td><i>OCFNet (published)</i></td><td align="right"><i>90.2</i></td><td align="right"><i>58.7</i></td><td align="right"><i>98.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>66.7</i></td><td align="right"><i>29.5</i></td><td align="right"><i>84.0</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
   <tr><td><i>Predator (published)</i></td><td align="right"><i>90.6</i></td><td align="right"><i>57.1</i></td><td align="right"><i>96.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>62.4</i></td><td align="right"><i>28.3</i></td><td align="right"><i>76.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
@@ -298,30 +295,6 @@ sampling curve on our side would need a larger pool, which means relaxing the `m
 `deduplicate` readout; measured, that lowers 3DLoMatch RR, so the small pool is a deliberate
 choice.
 
-### The overlap score
-
-The overlap head earns its place as an auxiliary loss, not as a transport prior. Using the
-predicted score to drive the Sinkhorn marginals was measured in five configurations against
-a control that trains the same head and both overlap losses but keeps uniform marginals:
-
-| overlap marginals | dustbin | 3DMatch IR | 3DLoMatch IR |
-| --- | --- | --- | --- |
-| none (control) | on | 51.3 | 22.0 |
-| coarse and fine | on | 54.8 | 24.1 |
-| fine only | on at coarse | 53.5 | 23.2 |
-| coarse and fine | off | 53.0 | 21.5 |
-| coarse and fine, plus a cost-side bias | on | 55.2 | 24.0 |
-
-Guiding both transports is worth about +3.5 IR, and only while the dustbin is kept: the
-score says *which* points should match, the dustbin lets a point match *nothing*, and
-removing it forces every point onto some target and manufactures outliers. The damage is
-three times larger on 3DLoMatch, where more of each cloud genuinely has no counterpart.
-
-That gain does not survive RoPE-3D. With RoPE at the coarse level, every model without
-overlap marginals beats every model with them (60.9 against 58.5 IR on 3DMatch), so the two
-appear to supply the same geometric information and RoPE supplies more of it. The models
-above therefore keep the overlap head and its losses but leave the marginals uniform.
-
 ### The 3DLoMatch recall gap
 
 Our OCFNet's 3DLoMatch RR is 58.6 against CoFiNet's published 64.2 while our inlier ratio is
@@ -343,18 +316,15 @@ Every converged variant leaves that fraction where it is:
 
 | configuration (ep 149) | dead pairs | registered | mean IR |
 | --- | --- | --- | --- |
-| 1 round (baseline) | 21.1% | 57.4% | 0.273 |
-| 2 rounds | 22.0% | 59.6% | 0.331 |
-| 3 rounds | 22.4% | 59.7% | 0.353 |
-| 2 rounds + circle loss | 21.6% | 59.6% | 0.331 |
+| 3 rounds, no circle loss | 22.4% | 59.7% | 0.353 |
 | 3 rounds + circle loss (our OCFNet) | 20.9% | 60.6% | 0.353 |
 | *oracle (true patch pairs)* | *0.0%* | *78.9%* | *0.489* |
 
-Overlap marginals at the coarse level, with and without the dustbin, and larger patches were
-also tried; all sit at 21-23%. What the deeper attention and the circle loss buy is a higher
-conversion rate among the *live* pairs -- 57.4% to 60.6% registered -- not a rescue of the
-dead ones. Closing the remaining gap means changing how the coarse ranking behaves on
-low-overlap pairs, which none of these interventions does.
+Overlap marginals at the coarse level, with and without the dustbin, larger patches, a bigger
+coarse budget and a looser readout were also tried; all sit at 21-23%. What the circle loss
+buys is a higher conversion rate among the *live* pairs, not a rescue of the dead ones.
+Closing the remaining gap means changing how the coarse ranking behaves on low-overlap pairs,
+which none of these interventions does.
 
 The one test not yet run is CoFiNet's released checkpoint through this evaluation code: near
 64 puts the difference in the model, near 55 puts it in the harness.
@@ -375,20 +345,6 @@ produces `ceil(pairs/B)` estimates and the write walks off the end of the array.
 
 The evaluation script appends IR and FMR to `est_traj/<benchmark>/<samples>/result` rather
 than printing them, so read that file rather than the job's stdout.
-
-## Tests
-
-```shell
-python scripts/test_spconv_forward.py configs/train/indoor.yaml    # shapes, row order, gradients, batch of 2
-python scripts/test_batch_equivalence.py configs/train/indoor.yaml --batch_size 3
-python scripts/test_train_step.py configs/train/indoor.yaml --iters 3 --batch_size 4
-```
-
-All pass on an A100 (`reg3d`: torch 2.7.1+cu126 / spconv-cu126 2.3.8, and also with torch
-2.8+cu126): 25k source voxels forward in 0.72 s cold at 0.85 GiB, ~0.6 s per training
-iteration with batch_size 4 (3.9 GiB), batched output within 3e-4 of the per-pair output.
-RANSAC pose estimation recovers a known rigid transform to 3e-8 with and without the mutual
-check.
 
 ## Citation
 

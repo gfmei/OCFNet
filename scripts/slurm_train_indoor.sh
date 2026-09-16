@@ -8,21 +8,20 @@
 #SBATCH --time=2-08:05:05
 #SBATCH --qos=boost_qos_lprod
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --mem=128G
-# Account comes from the ACCOUNT env var so a run can be moved off an account that
-# is over its monthly allowance -- fair-share priority is driven by recent usage,
-# so an over-quota account backfills last. `saldo -b` shows the balances.
-# Do not use EUHPC_D30_012. Expired or exhausted: FBKLM_prj1, FBKLM_prj2,
-# IscrC_3DLLM, IscrC_4grasp. Usable: AIFPT_agrifood, IscrC_TeVLA, IscrC_ERAR.
-#SBATCH --account=AIFPT_agrifood --partition=boost_usr_prod
+#SBATCH --partition=boost_usr_prod
+# Set --account on the command line (`sbatch --account=<account> ...`) or give the user a
+# DefaultAccount. The requeue below re-submits this same file, so a run started under an
+# explicit --account needs that account to remain valid for its successors.
+#SBATCH --account=AIFPT_agrifood
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --signal=B:USR1@600
 set -euo pipefail
-source /leonardo_scratch/fast/AIFPT_agrifood/miniforge3/etc/profile.d/conda.sh
+source "${CONDA_ROOT:-$(conda info --base)}/etc/profile.d/conda.sh"
 conda activate "${CONDA_ENV:-reg3d}"
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 NUMEXPR_NUM_THREADS=4
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-cd /leonardo_scratch/fast/AIFPT_agrifood/code/OCFNet
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # repo root, wherever it is
 
 # Single GPU: the model is small and the data loader is the bottleneck, so the extra CPUs
 # feed it instead. Override the config with CONFIG=configs/train/indoor.yaml for the
@@ -60,6 +59,7 @@ on_time_limit() {
     CHAINLOG="snapshot/$EXP/chain.log"
     for attempt in 1 2 3; do
       NEXT=$(sbatch --parsable --job-name="$SLURM_JOB_NAME" \
+             ${SLURM_JOB_ACCOUNT:+--account="$SLURM_JOB_ACCOUNT"} \
              scripts/slurm_train_indoor.sh "$TRAIN_CONFIG" 2>&1)
       if [ $? -eq 0 ] && [ -n "$NEXT" ]; then
         echo "$(date -Is) $SLURM_JOB_ID -> successor $NEXT" | tee -a "$CHAINLOG"

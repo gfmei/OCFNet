@@ -1390,7 +1390,7 @@ class OCFLoss(nn.Module):
             hit = (torch.cdist(src_xyz, tgt_xyz) < self.matching_radius).float()
             hit = hit * output['patch_src_valid'][..., None] * output['patch_tgt_valid'][:, None, :]
             # A point whose partner sits in another patch belongs in the slack column --
-            # about three quarters of them do (scripts/diagnose_ocfnet.py). Supervising the
+            # about three quarters of them do, measured. Supervising the
             # augmented plan teaches the model to reject those instead of inventing a match,
             # which is what CoFiNet's local_scores_gt does.
             if 'patch_src_score' in output:

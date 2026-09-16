@@ -6,28 +6,25 @@
 # 16 cores roughly doubles that, which is why this is 1 h rather than 40 min.
 #SBATCH --time=01:00:00
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --mem=64G
-# Account comes from the ACCOUNT env var so a run can be moved off an account that
-# is over its monthly allowance -- fair-share priority is driven by recent usage,
-# so an over-quota account backfills last. `saldo -b` shows the balances.
-# Do not use EUHPC_D30_012. Expired or exhausted: FBKLM_prj1, FBKLM_prj2,
-# IscrC_3DLLM, IscrC_4grasp. Usable: AIFPT_agrifood, IscrC_TeVLA, IscrC_ERAR.
-#SBATCH --account=IscrC_ERAR --partition=boost_usr_prod
+#SBATCH --partition=boost_usr_prod
+# No --account here: pass `sbatch --account=<your account> ...`, or set a default with
+# `sacctmgr modify user $USER set DefaultAccount=<account>`.
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 set -euo pipefail
-source /leonardo_scratch/fast/AIFPT_agrifood/miniforge3/etc/profile.d/conda.sh
+source "${CONDA_ROOT:-$(conda info --base)}/etc/profile.d/conda.sh"
 conda activate "${CONDA_ENV:-reg3d}"
 # The evaluation is RANSAC-bound and parallelises over pairs, one thread each
 # (scripts/evaluate_ocfnet.py); throttling OMP here would cap that instead.
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-cd /leonardo_scratch/fast/AIFPT_agrifood/code/OCFNet
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # repo root, wherever it is
 
 CONFIG="${1:-${CONFIG:-configs/test/indoor.yaml}}"
 test -f "$CONFIG" || { echo "no such config: $CONFIG" >&2; exit 2; }
 BENCH="${BENCH:-3DMatch}"
 SAMPLE_LIST="${SAMPLE_LIST:-5000 2500 1000 500 250}"
 EXP=$(grep -E '^\s+exp_dir:' "$CONFIG" | awk '{print $2}')
-TMP=/leonardo_scratch/fast/AIFPT_agrifood/tmp
+TMP="${TMPDIR:-/tmp}/ocfnet"
 mkdir -p "$TMP"
 
 # The per-pair features do not depend on the number of sampled correspondences, so the
