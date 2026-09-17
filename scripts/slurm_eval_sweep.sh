@@ -17,7 +17,9 @@ conda activate "${CONDA_ENV:-reg3d}"
 # The evaluation is RANSAC-bound and parallelises over pairs, one thread each
 # (scripts/evaluate_ocfnet.py); throttling OMP here would cap that instead.
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # repo root, wherever it is
+# Repo root. Under sbatch the script runs from a spool copy, so BASH_SOURCE points at the
+# spool directory, not the repo -- SLURM_SUBMIT_DIR is the directory sbatch was called from.
+cd "${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 CONFIG="${1:-${CONFIG:-configs/test/indoor.yaml}}"
 test -f "$CONFIG" || { echo "no such config: $CONFIG" >&2; exit 2; }

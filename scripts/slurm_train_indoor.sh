@@ -24,7 +24,9 @@ source "${CONDA_ROOT:-$(conda info --base)}/etc/profile.d/conda.sh"
 conda activate "${CONDA_ENV:-reg3d}"
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 NUMEXPR_NUM_THREADS=4
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # repo root, wherever it is
+# Repo root. Under sbatch the script runs from a spool copy, so BASH_SOURCE points at the
+# spool directory, not the repo -- SLURM_SUBMIT_DIR is the directory sbatch was called from.
+cd "${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 # Single GPU: the model is small and the data loader is the bottleneck, so the extra CPUs
 # feed it instead. Override the config with CONFIG=configs/train/indoor.yaml for the
