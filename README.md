@@ -208,27 +208,32 @@ and the `est_traj/{benchmark}/{samples}/result` format CoFiNet reports, so the n
 directly comparable to theirs; the inlier-ratio and feature-match-recall algorithms are also
 identical to GeoTransformer's.
 
-Two models, both trained for 150 epochs and evaluated at the last checkpoint:
+Two models. Our OCFNet is trained for 150 epochs and evaluated at the last checkpoint; the
+CoFiNet reference is evaluated at epoch 132 of 150, on a curve that has been flat
+since epoch 40 (its coarse and fine inlier ratios moved by under 0.005 over the last 90
+epochs), so the number is representative of its converged value:
 
 - **our OCFNet** -- three rounds of interleaved self/cross attention at the coarse level with
   RoPE-3D, the overlap head trained with both overlap losses, and an overlap-aware circle loss
   on the super-point features (the coarse loss of GeoTransformer) alongside the transport
   loss. Uniform transport marginals with the dustbin on.
-(The three-round CoFiNet reference is still training; its row is added when it converges.) It is the reference the ablation below builds from.
+- **our improved CoFiNet** -- three rounds of interleaved self/cross attention, as CoFiNet
+  uses, with RoPE-3D and no overlap head: the CoFiNet architecture on this code base. It
+  differs from our OCFNet only in the overlap head and its losses and the circle loss. It is the reference the ablation below builds from.
 
 ### 3DMatch
 
 <table>
 <thead>
-  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
-  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
 </thead>
 <tbody>
-  <tr><td align="center">5000</td><td align="right">89.2</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.072</td><td align="right"><i>89.3</i></td><td align="right"><i>49.8</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">2500</td><td align="right">89.6</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.071</td><td align="right"><i>88.9</i></td><td align="right"><i>51.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">1000</td><td align="right">89.1</td><td align="right">69.8</td><td align="right">96.4</td><td align="right">2.25</td><td align="right">0.071</td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">500</td><td align="right">88.8</td><td align="right">69.6</td><td align="right">96.4</td><td align="right">2.22</td><td align="right">0.074</td><td align="right"><i>87.4</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.2</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">250</td><td align="right">89.1</td><td align="right">69.3</td><td align="right">96.5</td><td align="right">2.26</td><td align="right">0.073</td><td align="right"><i>87.0</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">5000</td><td align="right">89.2</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.072</td><td align="right">90.5</td><td align="right">70.5</td><td align="right">96.3</td><td align="right">2.26</td><td align="right">0.078</td><td align="right"><i>89.3</i></td><td align="right"><i>49.8</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">2500</td><td align="right">89.6</td><td align="right">69.9</td><td align="right">96.4</td><td align="right">2.28</td><td align="right">0.071</td><td align="right">89.4</td><td align="right">70.5</td><td align="right">96.3</td><td align="right">2.18</td><td align="right">0.075</td><td align="right"><i>88.9</i></td><td align="right"><i>51.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">1000</td><td align="right">89.1</td><td align="right">69.8</td><td align="right">96.4</td><td align="right">2.25</td><td align="right">0.071</td><td align="right">90.1</td><td align="right">70.4</td><td align="right">96.3</td><td align="right">2.25</td><td align="right">0.074</td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">500</td><td align="right">88.8</td><td align="right">69.6</td><td align="right">96.4</td><td align="right">2.22</td><td align="right">0.074</td><td align="right">90.1</td><td align="right">70.1</td><td align="right">96.2</td><td align="right">2.28</td><td align="right">0.073</td><td align="right"><i>87.4</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.2</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">250</td><td align="right">89.1</td><td align="right">69.3</td><td align="right">96.5</td><td align="right">2.26</td><td align="right">0.073</td><td align="right">90.1</td><td align="right">69.7</td><td align="right">96.3</td><td align="right">2.28</td><td align="right">0.072</td><td align="right"><i>87.0</i></td><td align="right"><i>52.2</i></td><td align="right"><i>98.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
 </tbody>
 </table>
 
@@ -236,15 +241,15 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 
 <table>
 <thead>
-  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
-  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
+  <tr><th rowspan="2">samples</th><th colspan="5">our OCFNet</th><th colspan="5">our improved CoFiNet</th><th colspan="5"><i>CoFiNet (published)</i></th></tr>
+  <tr><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th><th>RR</th><th>IR</th><th>FMR</th><th>RRE</th><th>RTE</th></tr>
 </thead>
 <tbody>
-  <tr><td align="center">5000</td><td align="right">58.8</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.39</td><td align="right">0.103</td><td align="right"><i>67.5</i></td><td align="right"><i>24.4</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">2500</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.34</td><td align="right">0.103</td><td align="right"><i>66.2</i></td><td align="right"><i>25.9</i></td><td align="right"><i>83.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">1000</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.31</td><td align="right">0.098</td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">500</td><td align="right">58.2</td><td align="right">35.0</td><td align="right">78.2</td><td align="right">3.60</td><td align="right">0.108</td><td align="right"><i>63.1</i></td><td align="right"><i>26.8</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
-  <tr><td align="center">250</td><td align="right">58.2</td><td align="right">34.7</td><td align="right">77.6</td><td align="right">3.48</td><td align="right">0.109</td><td align="right"><i>61.0</i></td><td align="right"><i>26.9</i></td><td align="right"><i>82.6</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">5000</td><td align="right">58.8</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.39</td><td align="right">0.103</td><td align="right">58.3</td><td align="right">35.4</td><td align="right">77.1</td><td align="right">3.44</td><td align="right">0.106</td><td align="right"><i>67.5</i></td><td align="right"><i>24.4</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">2500</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.34</td><td align="right">0.103</td><td align="right">58.2</td><td align="right">35.4</td><td align="right">77.1</td><td align="right">3.42</td><td align="right">0.108</td><td align="right"><i>66.2</i></td><td align="right"><i>25.9</i></td><td align="right"><i>83.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">1000</td><td align="right">58.6</td><td align="right">35.1</td><td align="right">78.0</td><td align="right">3.31</td><td align="right">0.098</td><td align="right">58.1</td><td align="right">35.4</td><td align="right">77.1</td><td align="right">3.56</td><td align="right">0.102</td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">500</td><td align="right">58.2</td><td align="right">35.0</td><td align="right">78.2</td><td align="right">3.60</td><td align="right">0.108</td><td align="right">58.4</td><td align="right">35.2</td><td align="right">77.2</td><td align="right">3.52</td><td align="right">0.107</td><td align="right"><i>63.1</i></td><td align="right"><i>26.8</i></td><td align="right"><i>83.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
+  <tr><td align="center">250</td><td align="right">58.2</td><td align="right">34.7</td><td align="right">77.6</td><td align="right">3.48</td><td align="right">0.109</td><td align="right">58.0</td><td align="right">34.8</td><td align="right">76.8</td><td align="right">3.45</td><td align="right">0.102</td><td align="right"><i>61.0</i></td><td align="right"><i>26.9</i></td><td align="right"><i>82.6</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
 </tbody>
 </table>
 
@@ -257,6 +262,7 @@ Two models, both trained for 150 epochs and evaluated at the last checkpoint:
 </thead>
 <tbody>
   <tr><td><b>our OCFNet</b></td><td align="right"><b>89.1</b></td><td align="right"><b>69.8</b></td><td align="right"><b>96.4</b></td><td align="right"><b>2.25</b></td><td align="right"><b>0.071</b></td><td align="right"><b>58.6</b></td><td align="right"><b>35.1</b></td><td align="right"><b>78.0</b></td><td align="right"><b>3.31</b></td><td align="right"><b>0.098</b></td></tr>
+  <tr><td>our improved CoFiNet</td><td align="right">90.1</td><td align="right">70.4</td><td align="right">96.3</td><td align="right">2.25</td><td align="right">0.074</td><td align="right">58.1</td><td align="right">35.4</td><td align="right">77.1</td><td align="right">3.56</td><td align="right">0.102</td></tr>
   <tr><td><i>CoFiNet (published)</i></td><td align="right"><i>88.4</i></td><td align="right"><i>51.9</i></td><td align="right"><i>98.1</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>64.2</i></td><td align="right"><i>26.7</i></td><td align="right"><i>83.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
   <tr><td><i>OCFNet (published)</i></td><td align="right"><i>90.2</i></td><td align="right"><i>58.7</i></td><td align="right"><i>98.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>66.7</i></td><td align="right"><i>29.5</i></td><td align="right"><i>84.0</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
   <tr><td><i>Predator (published)</i></td><td align="right"><i>90.6</i></td><td align="right"><i>57.1</i></td><td align="right"><i>96.5</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td><td align="right"><i>62.4</i></td><td align="right"><i>28.3</i></td><td align="right"><i>76.3</i></td><td align="right"><i>--</i></td><td align="right"><i>--</i></td></tr>
