@@ -53,8 +53,15 @@ def get_datasets(config):
     if(config.dataset=='indoor'):
         info_train = load_obj(config.train_info)
         info_val = load_obj(config.val_info)
-        # the split the per-epoch registration check draws from (see trainer.py)
-        info_benchmark = load_obj(f"configs/indoor/{config.get('check_benchmark', config.benchmark)}.pkl")
+        # In training the benchmark split feeds the per-epoch registration check, and
+        # `check_benchmark` may point it at a harder split (see trainer.py). At test time
+        # `benchmark` is what the evaluation sweep sets per job and must win: with
+        # check_benchmark applied here, a "3DMatch" job dumped 3DLoMatch pairs and scored
+        # them against 3DMatch ground truth -- registration recall 0.000.
+        split = config.benchmark
+        if config.get('mode') == 'train':
+            split = config.get('check_benchmark', config.benchmark)
+        info_benchmark = load_obj(f'configs/indoor/{split}.pkl')
 
         train_set = IndoorDataset(info_train,config,data_augmentation=True)
         val_set = IndoorDataset(info_val,config,data_augmentation=False)
